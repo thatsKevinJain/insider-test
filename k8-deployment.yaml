@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: nodejs-test
+    # Namespaces are logical separators that help to isolate application in same cluster.
+    namespace: default
+    # This field is ignored at the moment by K8s API server and just used for user understanding.
+    clusterName: default
+    labels:
+        app: nodejs-test
+        env: production
+spec:
+    replicas: 1
+    selector:
+        # This identifies which pod this Deployment will manage.
+        matchLabels:
+            app: nodejs-test
+    # The strategy to be followed when this Deployment is updated.
+    strategy:
+        type: RollingUpdate
+        rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 3
+    template:
+        metadata:
+            namespace: default
+            # Must be the same as the Selector:matchLables field in Deployment spec field.
+            labels:
+                app: nodejs-test
+        spec:
+            # The specification of the containers that will be a part of the Pods.
+            containers:
+            - name: nodejs-test
+              image: 034976329924.dkr.ecr.ap-south-1.amazonaws.com/nodejs-test:latest
+
+              # Environment variables for the container can be defined here.
+              env:
+              - name: PORT
+                value: !!integer 3000
+
+              # Ports that are going to used by the application are defined here.
+              ports:
+              - containerPort: 3000
+              # This section can be used to specify requests and limits for the CPU and Memory allocated to the container.
+              resources:
+                  requests:
+                      cpu: "100m"
+                      memory: "64Mi"
+                  limits:
+                      cpu: "100m"
+                      memory: "64Mi"
+              # Pull the latest image from AWS #
+              imagePullPolicy: IfNotPresent
+              # Probe definition to check whether container is ready to receive traffic on application or not.
+              # This can be used to wait for the container to complete initialization actions.
+              readinessProbe:
+                  httpGet:
+                      path: /
+                      port: 3000
+                  initialDelaySeconds: 20
+                  timeoutSeconds: 3
+                  periodSeconds: 30
+                  successThreshold: 1
+                  failureThreshold: 5
+              # Probe definition to check whether application is up and running or not.
+              # Container will be restarted if this Probe fails.
+              livenessProbe:
+                  httpGet:
+                      path: /
+                      port: 3000
+                  initialDelaySeconds: 20
+                  timeoutSeconds: 3
+                  periodSeconds: 30
+                  successThreshold: 1
+                  failureThreshold: 5
+            # Uses the secret created in the cluster to login to AWS #
+            imagePullSecrets:
+              - name: regcred
+            # Sets the pods to have the highest possible priority #
+            priorityClassName: system-node-critical
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: nodejs-test
+spec:
+  type: LoadBalancer
+  selector:
+    app: nodejs-test
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nodejs-test
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: nodejs-test
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageUtilization: 60
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 50
+---
