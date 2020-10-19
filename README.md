@@ -13,38 +13,27 @@ Write a simple Kubernetes manifest to expose a nodejs server with the following 
 - Should have higher priority than daemonset pods.
 
 ### Setup
-I have tested the entire setup on `Minikube`
+I have tested the entire setup on `Minikube` | `MacOS` | `4 CPUs` | `8GB RAM`
 
-#### How to Login (To enable ECR Image Pull)- 
-
-Configure AWS and enter the credentials -
+#### Push & pull images -
+You can directly run the following commands to push/pull images, they will automatically login and run out of the box - 
 ```
-aws configure
-```
-- AWS_KEY_ID - `AKIAI4WRGV3AR6KAJIIA`
-- AWS_SECRET_KEY - `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`
-- REGION - `ap-south-1`
-
-Login and get Token -
-```
-TOKEN=$(aws ecr get-login-password --region ap-south-1)
+chmod +x scripts/push-image.sh && scripts/push-image.sh
+chmod +x scripts/pull-image.sh && scripts/pull-image.sh
 ```
 
-Create a new secret -
-```
-kubectl create secret docker-registry regcred --docker-server=034976329924.dkr.ecr.ap-south-1.amazonaws.com --docker-username=AWS --docker-password=${TOKEN} --docker-email=thatskevinjain@gmail.com
-```
+#### How to test the app on kubernetes - 
 
-You can test if the login was successful by pulling the image -
+You need to login first and create the login secret - <br>
 ```
-docker pull 034976329924.dkr.ecr.ap-south-1.amazonaws.com/nodejs-test:latest
+chmod +x scripts/login.sh && scripts/login.sh
 ```
+**Assumption** - The setup was tested locally on Minikube configured with default settings. <br>
 
 Now you can **deploy the application** using the following command -
 ```
-kubectl apply -f k8-deployment.yaml
+kubectl apply -f k8/deployment.yaml
 ```
-
 ---
 
 #### Testing
@@ -53,5 +42,10 @@ To check if the pods are running, use this command and open `localhost:3000` on 
 ```
 kubectl port-forward service/nodejs-test 3000:3000
 ```
+
+---
+
+#### Issues Faced -
+I could not complete the load test due the some issues faced with Horizontal Pod Scaler.
 
 ---

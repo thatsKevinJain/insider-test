@@ -1,3 +1,6 @@
+##############
+# DEPLOYMENT #
+##############
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -42,6 +45,7 @@ spec:
               ports:
               - containerPort: 3000
               # This section can be used to specify requests and limits for the CPU and Memory allocated to the container.
+              # These are set very low now to enable local testing #
               resources:
                   requests:
                       cpu: "100m"
@@ -80,6 +84,9 @@ spec:
             priorityClassName: system-node-critical
 
 ---
+################
+# LOADBALANCER #
+################
 kind: Service
 apiVersion: v1
 metadata:
@@ -95,6 +102,9 @@ spec:
       targetPort: 3000
 
 ---
+#########################
+# HORIZONTAL POD SCALER #
+#########################
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:

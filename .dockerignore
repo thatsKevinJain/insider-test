@@ -1,5 +1,5 @@
 node_modules/
-deploy.sh
+scripts/
+k8/
 Dockerfile
-k8-deployment.yaml
-task.md
+README.md
